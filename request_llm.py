@@ -14,6 +14,7 @@ def ping_container():
         #     [1.00 - 2.00] [speaker_0] :  Welcome to another episode of the Checkup Podcast with Dr. Mike. Today, I, Dr. Mike, am excited to welcome Dr. Mike to the Checkup Podcast with Dr. Mike. No, I'm not inviting myself onto my own show. I'm talking about Dr. Mike Israetel, a popular YouTube educator, but also someone who holds a PhD in sports physiology. Whether you're looking to start putting on muscle, restarting a forgotten regimen, understanding the impact of mental health on your fitness journey, or uncovering the harsh realities of steroid use, this conversation covers that and so much more. We got into some topics I truly didn't expect to address, but found extremely interesting, including the fact that he believes AI and gene therapy will get us to the point where exercise becomes completely useless. What? Bottom line, get ready to get re-energized and educated on how to pack on muscle and why it's actually crucial for your health to do so. Please welcome the other Dr. Mike to the Checkup Podcast."
 
         txt_files = ["examples/MIT_Transcript_1.txt", "examples/MIT_Transcript_2.txt"]
+        #txt_files = ["output/output_transcription_steroids_120sec.txt"]
         prompt = ""
 
         for txt_file in txt_files:

@@ -1,6 +1,6 @@
 from vllm import LLM, SamplingParams
 from prompts import generate_meetings_prompt, generate_summary_prompt
-from utils import construct_prompt, check_if_chunking_neccessary, chunk_message_brute
+from utils import construct_prompt, check_if_chunking_neccessary, chunk_message_brute, chunk_message_by_speech
 import logging
 
 logging.basicConfig(
@@ -23,7 +23,7 @@ class LLMForSummary:
                          max_model_len = max_model_len)
         
         self.max_context_length = max_context_length
-        self.sampling_params = SamplingParams(max_tokens=self.max_context_length)
+        self.sampling_params = SamplingParams(max_tokens=self.max_context_length, temperature=1)
         
         logging.info("LLM started up")
         
@@ -41,6 +41,8 @@ class LLMForSummary:
         outputs = self.llm.generate(prompt_with_transcription, self.sampling_params)
         for output in outputs:
             final_minutes+=output.outputs[0].text
+            
+        logging.info("Summary_text: %s", final_minutes)
         
         return final_minutes
     
@@ -51,32 +53,39 @@ class LLMForSummary:
         final_summary = ""
         
         prompt = construct_prompt(generate_summary_prompt)
+        
+        #prompt = 'Summarize the following dialouge:\n'
+        
         prompt_with_transcription = prompt + text
+        
+        # logging.info("Summary_text: %s", prompt_with_transcription)
         
         outputs = self.llm.generate(prompt_with_transcription, self.sampling_params)
         
         for output in outputs:
             final_summary+=output.outputs[0].text
-        
+            
+        logging.info("Summary_text: %s", final_summary)
         return final_summary
     
     def chunking_loop(self, text):
         
         logging.info("Chunking is necessary")
         
-        text_chunks = chunk_message_brute(text, self.max_context_length)
+        # NOTE: can chunk by speech or brute force 
+        text_chunks = chunk_message_by_speech(text, self.max_context_length)
         summary_text = ''
+        count = 0
         
         for text_chunk in text_chunks:
             summary_chunk = self.generate_summary(text_chunk)
-            # TODO add in the chunk number (For context)
-            summary_text += summary_chunk
+            summary_text += f"This is text chunk {count}:\n"+summary_chunk
+            count += 1
         
         if check_if_chunking_neccessary(summary_text, max_length=self.max_context_length):
             summary_text = self.chunking_loop(summary_text)
-        
-        return summary_text
             
+        return summary_text
     
     def orchestrator(self, text):
         logging.info("Entering Orchestrator")

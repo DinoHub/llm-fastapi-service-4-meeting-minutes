@@ -22,9 +22,9 @@ class ChatMessage(BaseModel):
 
 llm = LLMForSummary(model_path = "models/llama/Llama-3.2-3B-Instruct", 
                     tensor_parallel_size = 1,
-                    gpu_memory_utilization = 0.6,
+                    gpu_memory_utilization = 0.8,
                     max_model_len = 16000,
-                    max_context_length = 7000)
+                    max_context_length = 4000)
 
 app = FastAPI()
 
