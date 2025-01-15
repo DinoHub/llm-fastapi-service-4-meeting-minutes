@@ -1,0 +1,107 @@
+ARG BASE_REGISTRY=docker.io
+ARG BASE_IMAGE=nvidia/cuda
+ARG BASE_TAG=12.1.0-devel-ubi9
+
+FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS cuda
+
+ENV \
+    APP_ROOT=/opt/app-root \
+    # The $HOME is not set by default, but some applications needs this variable
+    HOME=/opt/app-root/src \
+    PATH=/opt/app-root/src/bin:/opt/app-root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    PLATFORM="el9"
+
+COPY docker-scripts/ /usr/bin
+
+ENV PYTHON_VERSION=3.12 \
+  PATH="${HOME}/.local/bin/:${PATH}" \
+  PYTHONDONTWRITEBYTECODE=1 \
+  PYTHONUNBUFFERED=1 \
+  PYTHONFAULTHANDLER=1 \
+  PYTHONIOENCODING=UTF-8 \
+  PIP_NO_CACHE_DIR=off \
+  LC_ALL=en_US.UTF-8 \
+  LANG=en_US.UTF-8 \
+  CNB_STACK_ID=com.redhat.stacks.ubi9-python-3 \
+  CNB_USER_ID=1001 \
+  CNB_GROUP_ID=0 \
+  POETRY_REQUESTS_TIMEOUT=300 \
+  CUDACXX=/usr/local/cuda-12.1/bin/nvcc \
+  CUDA_HOME=/usr/local/cuda-12.1 \
+  CUDA_PATH=/usr/local/cuda-12.1 \
+  CMAKE_ARGS="-DLLAMA_CUBLAS=on -DCMAKE_CUDA_ARCHITECTURES=native" \
+  FORCE_CMAKE=1 \
+  TZ=Asia/Singapore
+
+RUN INSTALL_PKGS="python${PYTHON_VERSION} python${PYTHON_VERSION}-devel python${PYTHON_VERSION}-pip" && \
+    yum -y --setopt=tsflags=nodocs install $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
+    yum upgrade -y && \
+    yum clean all && \
+    yum -y clean all --enablerepo='*'
+
+RUN \
+    python${PYTHON_VERSION} -m venv ${APP_ROOT} && \
+    # Python 3.7+ only code, Python <3.7 installs pip from PyPI in the assemble script. \
+    # We have to upgrade pip to a newer verison because: \
+    # * pip < 9 does not support different packages' versions for Python 2/3 \
+    # * pip < 19.3 does not support manylinux2014 wheels. Only manylinux2014 (and later) wheels \
+    #   support platforms like ppc64le, aarch64 or armv7 \
+    # We are newly using wheel from one of the latest stable Fedora releases (from RPM python-pip-wheel) \
+    # because it's tested better then whatever version from PyPI and contains useful patches. \
+    # We have to do it here (in the macro) so the permissions are correctly fixed and pip is able \
+    # to reinstall itself in the next build phases in the assemble script if user wants the latest version \
+    chown -R 1001:0 ${APP_ROOT} && \
+    echo "unset BASH_ENV PROMPT_COMMAND ENV" >> ${APP_ROOT}/bin/activate
+
+ENV BASH_ENV="${APP_ROOT}/bin/activate" \
+    ENV="${APP_ROOT}/bin/activate" \
+    PROMPT_COMMAND=". ${APP_ROOT}/bin/activate"
+
+USER 1001
+
+FROM cuda AS base
+
+ENV POETRY_VERSION=1.8.5
+
+RUN python -m pip install pipx \
+    && pipx install poetry==$POETRY_VERSION \
+    &&  pipx inject poetry poetry-plugin-bundle
+
+FROM base AS builder
+
+WORKDIR "${HOME}"
+
+COPY --chown=1001:0 llm_inference_service/ .
+
+USER root
+
+RUN poetry bundle venv --python=/opt/app-root/bin/python --only=main "${HOME}/venv" \
+    && fix-permissions ${HOME} -P \
+    && rpm-file-permissions
+
+FROM cuda AS poetry-app
+
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${HOME}/venv/lib/python3.12/site-packages/nvidia/cudnn/lib/"
+
+WORKDIR "${HOME}"
+
+COPY --chown=1001:0 --from=builder "${HOME}/venv" "${HOME}/venv"
+
+RUN echo "unset BASH_ENV PROMPT_COMMAND ENV" >> ${HOME}/venv/bin/activate
+
+ENV BASH_ENV="${HOME}/venv/bin/activate" \
+    ENV="${HOME}/venv/bin/activate" \
+    PROMPT_COMMAND=". ${HOME}/venv/bin/activate"
+
+USER 1001
+
+# CMD python -m vllm.entrypoints.openai.api_server \
+#     --gpus all \
+#     --host=0.0.0.0 \
+#     --served-model-name=$MODEL_NAME \
+#     --model=$MODEL_PATH \
+#     --chat-template=$CHAT_TEMPLATE_PATH \
+#     --tensor-parallel-size=$TENSOR_PARALLEL_SIZE
+
+#ENTRYPOINT ["/opt/app-root/src/venv/bin/python", "-m", "vllm.entrypoints.openai.api_server"]

@@ -1,0 +1,32 @@
+services:
+  llm-service:
+    container_name: llm-service
+    image: dinohub-asr/llama-llm-fastapi-service:0.1.0
+    build:
+      context: .
+      dockerfile: Dockerfile.cuda
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - $PWD/llm_inference_service:/opt/app-root/src/llm_inference_service
+      - $PWD/templates:/opt/app-root/src/templates
+      - $PWD/models/llama:/opt/app-root/src/models/llama
+    ports:
+      - 8000:8080
+    command:
+      [
+        "fastapi",
+        "run",
+        "llm_inference_service/main.py",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8080",
+      ]
