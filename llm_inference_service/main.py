@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from schemas import LLMResponse, HealthResponse
 from llm import LLMForSummary
+import yaml
 
 SERVICE_HOST = "0.0.0.0"
 SERVICE_PORT = 8080
@@ -18,13 +19,21 @@ logging.basicConfig(
 
 class ChatMessage(BaseModel):
     message: str
+    
+config = yaml.safe_load(open("config.yaml"))
+
+model_choice = config['model_choice']
+tensor_parallel_size = config['tensor_parallel_size']
+gpu_memory_utilization = config['gpu_memory_utilization']
+max_model_len = config['max_model_len']
+max_context_length = config['max_context_length']
 
 
-llm = LLMForSummary(model_path = "models/llama/Llama-3.2-3B-Instruct", 
-                    tensor_parallel_size = 1,
-                    gpu_memory_utilization = 0.8,
-                    max_model_len = 16000,
-                    max_context_length = 4000)
+llm = LLMForSummary(model_path = model_choice, 
+                    tensor_parallel_size = tensor_parallel_size,
+                    gpu_memory_utilization = gpu_memory_utilization,
+                    max_model_len = max_model_len,
+                    max_context_length = max_context_length)
 
 app = FastAPI()
 

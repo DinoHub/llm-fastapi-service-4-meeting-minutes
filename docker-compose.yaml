@@ -18,6 +18,7 @@ services:
       - $PWD/llm_inference_service:/opt/app-root/src/llm_inference_service
       - $PWD/templates:/opt/app-root/src/templates
       - $PWD/models/llama:/opt/app-root/src/models/llama
+      - $PWD/models/GGUF:/opt/app-root/src/models/GGUF
     ports:
       - 8000:8080
     command:

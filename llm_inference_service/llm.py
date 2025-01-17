@@ -73,7 +73,7 @@ class LLMForSummary:
         logging.info("Chunking is necessary")
         
         # NOTE: can chunk by speech or brute force 
-        text_chunks = chunk_message_by_speech(text, self.max_context_length)
+        text_chunks = chunk_message_brute(text, self.max_context_length)
         summary_text = ''
         count = 0
         
