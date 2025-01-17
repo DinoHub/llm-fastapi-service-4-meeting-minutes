@@ -36,8 +36,6 @@ def chunk_message_brute(text, max_length = 1000):
     words = text.split()  # Split the text into words
     chunks = [" ".join(words[i:i+max_length]) for i in range(0, len(words), max_length)]
     
-    logging.info("Number of chunks: %s", len(chunks))
-    
     return chunks
 def split_into_speech_segments(text):
     
@@ -69,4 +67,18 @@ def chunk_message_by_speech(text, max_length = 1000):
     if current_chunk:
         chunks.append(" ".join(current_chunk))
 
+    return chunks
+
+def chunking_orchestrator(text, max_length = 1000, chunking_choice = 'by_speech'):
+    
+    if chunking_choice == "by_speech":
+        
+        chunks = chunk_message_by_speech(text, max_length)
+        
+    else:
+        
+        chunks = chunk_message_brute(text, max_length)
+    
+    logging.info("Number of chunks: %s", len(chunks))
+    
     return chunks

@@ -20,20 +20,22 @@ logging.basicConfig(
 class ChatMessage(BaseModel):
     message: str
     
-config = yaml.safe_load(open("config.yaml"))
+config = yaml.safe_load(open("/opt/app-root/src/llm_inference_service/config.yaml"))
 
 model_choice = config['model_choice']
 tensor_parallel_size = config['tensor_parallel_size']
 gpu_memory_utilization = config['gpu_memory_utilization']
 max_model_len = config['max_model_len']
 max_context_length = config['max_context_length']
+chunking_strat = config['chunking_strat']
 
 
 llm = LLMForSummary(model_path = model_choice, 
                     tensor_parallel_size = tensor_parallel_size,
                     gpu_memory_utilization = gpu_memory_utilization,
                     max_model_len = max_model_len,
-                    max_context_length = max_context_length)
+                    max_context_length = max_context_length,
+                    chunking_strat = chunking_strat)
 
 app = FastAPI()
 
@@ -62,7 +64,7 @@ async def generate(prompt: ChatMessage):
 @app.post("/llm_orchestrator")
 async def generate(prompt: ChatMessage):
     try:
-        final_str = llm.orchestrator(prompt.message)
+        final_str = llm.llm_orchestrator(prompt.message)
         return {"text": final_str}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

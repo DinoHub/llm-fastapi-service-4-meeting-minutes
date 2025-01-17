@@ -20,7 +20,7 @@ generate_summary_prompt = [{
                             The format for each speech segment is: [<Name>] <timestamp>\n <Message>\
                             You MUST summarise the transcipt by capturing the key ideas, main points, who provided which ideas and essential details of the meeting. \n\
                             DO NOT include any other text besides the summary. DO NOT include the transcription in the final summary.\n\
-                            DO NOT exceed 500 words \n \
+                            DO start the summarization with '<Summarisation>' \n \
                             Start Summarising the text after the colon:\n ###TRANSCRIPT### \n"
                 }
 ]

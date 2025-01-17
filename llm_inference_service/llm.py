@@ -1,7 +1,9 @@
-from vllm import LLM, SamplingParams
-from prompts import generate_meetings_prompt, generate_summary_prompt
-from utils import construct_prompt, check_if_chunking_neccessary, chunk_message_brute, chunk_message_by_speech
 import logging
+
+from prompts import generate_meetings_prompt, generate_summary_prompt
+from utils import (check_if_chunking_neccessary, chunking_orchestrator,
+                   construct_prompt)
+from vllm import LLM, SamplingParams
 
 logging.basicConfig(
     format="%(levelname)s | %(asctime)s | %(message)s", level=logging.INFO
@@ -13,7 +15,8 @@ class LLMForSummary:
                  gpu_memory_utilization = 0.6, 
                  max_model_len = 16000,
                  tensor_parallel_size = 1,
-                 max_context_length = 7000):
+                 max_context_length = 7000,
+                 chunking_strat = 'brute'):
         
         logging.info("Starting up LLM")
         
@@ -24,6 +27,8 @@ class LLMForSummary:
         
         self.max_context_length = max_context_length
         self.sampling_params = SamplingParams(max_tokens=self.max_context_length, temperature=1)
+        
+        self.chunking_strat = chunking_strat
         
         logging.info("LLM started up")
         
@@ -68,12 +73,12 @@ class LLMForSummary:
         logging.info("Summary_text: %s", final_summary)
         return final_summary
     
-    def chunking_loop(self, text):
+    def chunking_loop(self, text, chunking_strat):
         
         logging.info("Chunking is necessary")
         
         # NOTE: can chunk by speech or brute force 
-        text_chunks = chunk_message_brute(text, self.max_context_length)
+        text_chunks = chunking_orchestrator(text, self.max_context_length, chunking_strat)
         summary_text = ''
         count = 0
         
@@ -83,16 +88,16 @@ class LLMForSummary:
             count += 1
         
         if check_if_chunking_neccessary(summary_text, max_length=self.max_context_length):
-            summary_text = self.chunking_loop(summary_text)
+            summary_text = self.chunking_loop(summary_text, chunking_strat='brute')
             
         return summary_text
     
-    def orchestrator(self, text):
+    def llm_orchestrator(self, text):
         logging.info("Entering Orchestrator")
         
         if check_if_chunking_neccessary(text, max_length=self.max_context_length):
         
-            text = self.chunking_loop(text)
+            text = self.chunking_loop(text, chunking_strat=self.chunking_strat)
             
         meeting_minutes = self.generate_meeting_minutes(text)
         
