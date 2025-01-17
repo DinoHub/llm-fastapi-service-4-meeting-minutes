@@ -6,6 +6,25 @@ logging.basicConfig(
 )
 
 def construct_prompt(messages):
+    """
+    To format the prompts for LLM usage
+
+    Attributes:
+        messages (list of dictionaries): Prompt to help the LLM understand its task better, e.g.
+        
+        [{
+            "role": "system",
+            "content": ""
+        },
+        {
+            "role": "user",
+            "content": ""
+        }
+    ]
+    
+    Return:
+        String: Formatted prompt for LLM usage
+    """
     
     prompt = ""
     for msg in messages:
@@ -25,6 +44,9 @@ def check_if_chunking_neccessary(text, max_length = 1000):
     Attributes:
         text (str): text that is being checked
         max_length (int): max word length allowed
+    
+    Return:
+        Boolean: whether chunking is necessary or not
     """
     
     word_count = len(text.split())
@@ -37,7 +59,14 @@ def chunk_message_brute(text, max_length = 1000):
     chunks = [" ".join(words[i:i+max_length]) for i in range(0, len(words), max_length)]
     
     return chunks
+
 def split_into_speech_segments(text):
+    """
+    Split speech segments in a transcription up for better chunking
+
+    Attributes:
+        text (str): text that is being checked
+    """
     
     pattern = r"(\[[^\]]+\] \d{2}:\d{2}:\d{2}\n.*?(?=\[[^\]]+\] \d{2}:\d{2}:\d{2}|\Z))" # NOTE: Pattern for MIT Transcript
     #pattern = r"(\[\d{1,2}\.\d{2} - \d{1,2}\.\d{2}\] \[speaker_\d\] :.*?(?=\[\d{1,2}\.\d{2} - |\Z))" # NOTE: For Ian's Representation of diarization (Minutes)
@@ -82,3 +111,8 @@ def chunking_orchestrator(text, max_length = 1000, chunking_choice = 'by_speech'
     logging.info("Number of chunks: %s", len(chunks))
     
     return chunks
+
+def limit_number_of_words_in_string(text, max_no_words):
+    
+    words = text.split()
+    return ' '.join(words[:max_no_words])

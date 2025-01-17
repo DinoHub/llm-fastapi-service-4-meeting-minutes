@@ -28,14 +28,15 @@ gpu_memory_utilization = config['gpu_memory_utilization']
 max_model_len = config['max_model_len']
 max_context_length = config['max_context_length']
 chunking_strat = config['chunking_strat']
-
+summary_limit = config['summary_limit']
 
 llm = LLMForSummary(model_path = model_choice, 
                     tensor_parallel_size = tensor_parallel_size,
                     gpu_memory_utilization = gpu_memory_utilization,
                     max_model_len = max_model_len,
                     max_context_length = max_context_length,
-                    chunking_strat = chunking_strat)
+                    chunking_strat = chunking_strat,
+                    summary_limit = summary_limit)
 
 app = FastAPI()
 
