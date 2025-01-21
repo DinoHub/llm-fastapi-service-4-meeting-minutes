@@ -1,4 +1,16 @@
-TODO write the ReadME
+# LLM FastAPI Service
+
+This fastapi service was created with the intention for summarisation of transcriptions into a meeting minutes format.
+
+The LLM model is loaded in using the vLLM library.
+REST api using FastApi.
+
+## To Run
+
+1. 
+
+
+
 
 TODO list:
 
